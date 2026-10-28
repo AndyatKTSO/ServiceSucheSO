@@ -18,10 +18,7 @@
 <body>
 
     <h2>Services Kanton Solothurn durchsuchen</h2>
-    <!-- Das Suchfeld -->
-    <input type="text" id="search-input" placeholder="Suchbegriff eingeben (z.B. MFK, Steuern)..." autocomplete="off">
-
-    <!-- Hier werden die Ergebnisse reingeschrieben -->
+    <input type="text" id="search-input" placeholder="Suchbegriff eingeben (z.B. gefahr, MFK)..." autocomplete="off">
     <div id="results"></div>
 
     <script>
@@ -29,48 +26,47 @@
         const resultsContainer = document.getElementById('results');
         let timeoutId;
 
-        // Event-Listener: Reagiert auf jede Tastatureingabe
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.trim();
 
-            // Suchfeld leeren -> Ergebnisse löschen
             if (query.length === 0) {
                 resultsContainer.innerHTML = '';
                 return;
             }
 
-            // Debounce: Wartet 300ms nach dem letzten Tastendruck, 
-            // damit nicht bei jedem einzelnen Buchstaben eine API-Anfrage gesendet wird.
             clearTimeout(timeoutId);
+            // 300ms warten nach dem Tippen
             timeoutId = setTimeout(() => {
                 executesearch(query);
-            }, 3000);
+            }, 300);
         });
 
         async function executesearch(query) {
             resultsContainer.innerHTML = '<p class="status">Suche läuft...</p>';
 
             try {
-                // API des Kantons Solothurn abfragen
-                const response = await fetch(`https://so.ch{encodeURIComponent(query)}`);
-                const data = await response.json();
-
-                // Container leeren
-                resultsContainer.innerHTML = '';
-
-                // Falls keine Services gefunden wurden
-                if (!data.results || data.results.length === 0) {
+                // Wir nutzen einen Proxy, damit der Browser die Anfrage von der Festplatte erlaubt
+                const targetUrl = `https://so.ch{encodeURIComponent(query)}`;
+                const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetUrl)}`;
+                
+                const response = await fetch(proxyUrl);
+                
+                if (!response.ok) {
                     resultsContainer.innerHTML = '<p class="status">Keine passenden Services gefunden.</p>';
                     return;
                 }
 
-                // Ergebnisse durchlaufen und HTML generieren
+                const data = await response.json();
+                resultsContainer.innerHTML = '';
+
+                if (!data || !data.results || data.results.length === 0) {
+                    resultsContainer.innerHTML = '<p class="status">Keine passenden Services im Verzeichnis gefunden.</p>';
+                    return;
+                }
+
                 data.results.forEach(service => {
                     const item = document.createElement('div');
                     item.className = 'service-item';
-                    
-                    // Wichtig: Die Links in der API sind relativ (/services/...), 
-                    // wir hängen die Hauptdomain davor.
                     item.innerHTML = `
                         <a href="https://so.ch${service.url}" target="_blank">${service.title}</a>
                         <div class="department">${service.department || 'Allgemeiner Dienst'}</div>
@@ -79,8 +75,8 @@
                 });
 
             } catch (error) {
-                console.error('Fehler bei der API-Abfrage:', error);
-                resultsContainer.innerHTML = '<p class="status" style="color:red;">Fehler beim Laden der Live-Daten.</p>';
+                console.error(error);
+                resultsContainer.innerHTML = '<p class="status">Fehler beim Laden der Live-Daten.</p>';
             }
         }
     </script>
