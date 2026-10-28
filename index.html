@@ -18,7 +18,7 @@
 <body>
 
     <h2>Services Kanton Solothurn durchsuchen</h2>
-    <input type="text" id="search-input" placeholder="Suchbegriff eingeben (z.B. gefahr, MFK)..." autocomplete="off">
+    <input type="text" id="search-input" placeholder="Suchbegriff eingeben (z.B. gefahrgut, MFK)..." autocomplete="off">
     <div id="results"></div>
 
     <script>
@@ -35,7 +35,7 @@
             }
 
             clearTimeout(timeoutId);
-            // 300ms warten nach dem Tippen
+            // 300ms warten, um die API nicht bei jedem Tastendruck zu überlasten
             timeoutId = setTimeout(() => {
                 executesearch(query);
             }, 300);
@@ -45,26 +45,42 @@
             resultsContainer.innerHTML = '<p class="status">Suche läuft...</p>';
 
             try {
-                // Wir nutzen einen Proxy, damit der Browser die Anfrage von der Festplatte erlaubt
-                const targetUrl = `https://so.ch{encodeURIComponent(query)}`;
+                // Wir holen per Proxy die komplette Liste (Limit 500), um CORS zu umgehen und flexibel zu filtern
+                const targetUrl = `https://so.ch`;
                 const proxyUrl = `https://corsproxy.io{encodeURIComponent(targetUrl)}`;
                 
                 const response = await fetch(proxyUrl);
                 
                 if (!response.ok) {
-                    resultsContainer.innerHTML = '<p class="status">Keine passenden Services gefunden.</p>';
+                    resultsContainer.innerHTML = '<p class="status">Verbindung zur API fehlgeschlagen.</p>';
                     return;
                 }
 
                 const data = await response.json();
                 resultsContainer.innerHTML = '';
 
-                if (!data || !data.results || data.results.length === 0) {
+                // Falls die Struktur nicht stimmt
+                if (!data || !data.results || !Array.isArray(data.results)) {
+                    resultsContainer.innerHTML = '<p class="status">Fehlerhafte Datenstruktur erhalten.</p>';
+                    return;
+                }
+
+                // Hier filtern wir JETZT selbst im Browser nach dem Wortteil (z.B. "gefahrgut" oder "gefahr")
+                const lowerQuery = query.toLowerCase();
+                const filteredResults = data.results.filter(service => {
+                    const titleMatch = service.title && service.title.toLowerCase().includes(lowerQuery);
+                    const deptMatch = service.department && service.department.toLowerCase().includes(lowerQuery);
+                    return titleMatch || deptMatch;
+                });
+
+                // Falls nach dem Filtern nichts übrig bleibt
+                if (filteredResults.length === 0) {
                     resultsContainer.innerHTML = '<p class="status">Keine passenden Services im Verzeichnis gefunden.</p>';
                     return;
                 }
 
-                data.results.forEach(service => {
+                // Ergebnisse rendern
+                filteredResults.forEach(service => {
                     const item = document.createElement('div');
                     item.className = 'service-item';
                     item.innerHTML = `
