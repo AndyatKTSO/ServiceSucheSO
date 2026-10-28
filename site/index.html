@@ -19,4 +19,3 @@ const frag=document.createDocumentFragment();for(const s of found.slice(0,150)){
 input.addEventListener('input',render);
 (async()=>{try{const r=await fetch('./services.json',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.items)||data.items.length<300)throw Error('unvollständiges Verzeichnis');services=data.items;updated.textContent='Zuletzt aktualisiert: '+new Date(data.updated).toLocaleString('de-CH',{timeZone:'Europe/Zurich'});render();}catch(e){status.textContent='Die Servicedaten konnten nicht geladen werden ('+e.message+'). Bitte später erneut versuchen.';}})();
 </script></body></html>
-
