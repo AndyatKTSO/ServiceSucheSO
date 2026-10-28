@@ -1,21 +1,68 @@
 <!doctype html>
-<html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="de-CH">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Service-Suche – Kanton Solothurn</title>
 <style>
-:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#182b42;background:#f4f7fb}
-*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #dce4ed;padding:26px 20px}main,header>div,footer{max-width:870px;margin:auto}h1{font-size:clamp(1.5rem,4vw,2rem);margin:0 0 8px}p{line-height:1.5}header p{margin:0;color:#57697b}main{padding:25px 20px}input{width:100%;border:2px solid #a4b4c6;border-radius:9px;padding:15px;font:inherit;font-size:1.1rem}input:focus{outline:2px solid #1869aa;outline-offset:2px}.meta{color:#56697d;margin:15px 0 18px}.result{background:white;border:1px solid #e1e8ef;border-radius:9px;margin:9px 0;padding:15px 18px}a{color:#075c9a;font-weight:600;text-decoration:none}a:hover{text-decoration:underline}footer{padding:5px 20px 28px;color:#607184;font-size:.88rem}
-</style></head>
-<body><header><div><h1>Services des Kantons Solothurn suchen</h1><p>Unabhängige Suchoberfläche mit Links zu den offiziellen Dienstleistungen.</p></div></header>
-<main><label for="search"><strong>Suchbegriff</strong></label><p><input id="search" type="search" placeholder="z. B. gefahr, MFK, Adoption" autocomplete="off" autofocus></p>
+:root{font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#182b42;background:#f4f7fb;color-scheme:light}
+*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #dce4ed;padding:26px 20px}main,header>div,footer{max-width:900px;margin:auto}h1{font-size:clamp(1.5rem,4vw,2rem);margin:0 0 8px}p{line-height:1.5}header p{margin:0;color:#57697b}main{padding:24px 20px}.filters{display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;align-items:end}@media(max-width:650px){.filters{grid-template-columns:1fr}}label{display:block;font-weight:600;margin-bottom:8px}input,select{width:100%;border:2px solid #a4b4c6;border-radius:9px;padding:13px;background:#fff;color:#182b42;font:inherit;min-height:53px}input:focus,select:focus{outline:2px solid #1869aa;outline-offset:2px}.meta{color:#56697d;margin:16px 0}.result{background:#fff;border:1px solid #e1e8ef;border-radius:9px;margin:9px 0;padding:15px 18px}a{color:#075c9a;font-weight:600;text-decoration:none}a:hover{text-decoration:underline}.tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.tag{display:inline-block;border-radius:6px;background:#e7edf3;padding:4px 9px;font-size:.8rem;color:#40566f}.unknown{background:#fff3d8;color:#66511b}footer{padding:5px 20px 28px;color:#607184;font-size:.88rem}
+</style>
+</head>
+<body>
+<header><div><h1>Services des Kantons Solothurn suchen</h1><p>Unabhängige Suchoberfläche mit Filtern für Departement und Amt sowie Links zu den offiziellen Dienstleistungen.</p></div></header>
+<main><div class="filters"><div><label for="search">Suchbegriff</label><input id="search" type="search" placeholder="z. B. gefahr, MFK, Adoption" autocomplete="off" autofocus></div><div><label for="department">Departement</label><select id="department"><option value="">Alle Departemente</option></select></div><div><label for="office">Amt / zuständige Stelle</label><select id="office"><option value="">Alle Ämter</option></select></div></div>
 <div id="status" class="meta" aria-live="polite">Lade Verzeichnis …</div><section id="results" aria-label="Suchresultate"></section></main>
 <footer><span id="updated"></span> · Quelle: <a href="https://so.ch/services/">so.ch/services</a>. Kein offizielles Angebot des Kantons.</footer>
 <script>
-const input=document.querySelector('#search'),status=document.querySelector('#status'),results=document.querySelector('#results'),updated=document.querySelector('#updated');
+const input=document.querySelector('#search'),dept=document.querySelector('#department'),office=document.querySelector('#office'),status=document.querySelector('#status'),results=document.querySelector('#results'),updated=document.querySelector('#updated');
 let services=[];
 function norm(t){return String(t||'').toLocaleLowerCase('de-CH').replaceAll('ä','a').replaceAll('ö','o').replaceAll('ü','u').replaceAll('ß','ss').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
-function render(){const words=norm(input.value.trim()).split(/\s+/).filter(Boolean);const found=words.length?services.filter(s=>words.every(w=>norm(s.title).includes(w))):services;
-status.textContent=`${found.length} von ${services.length} Services`+(words.length?' gefunden':' verfügbar');results.replaceChildren();
-const frag=document.createDocumentFragment();for(const s of found.slice(0,150)){const article=document.createElement('article');article.className='result';const a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=s.title;article.append(a);frag.append(article);}results.append(frag);if(found.length>150)status.textContent+=' · erste 150 angezeigt';}
-input.addEventListener('input',render);
-(async()=>{try{const r=await fetch('./services.json',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.items)||data.items.length<300)throw Error('unvollständiges Verzeichnis');services=data.items;updated.textContent='Zuletzt aktualisiert: '+new Date(data.updated).toLocaleString('de-CH',{timeZone:'Europe/Zurich'});render();}catch(e){status.textContent='Die Servicedaten konnten nicht geladen werden ('+e.message+'). Bitte später erneut versuchen.';}})();
+function getDepartments(s){return Array.isArray(s.departments)?s.departments:[];}
+function getOffices(s){return Array.isArray(s.offices)?s.offices:(Array.isArray(s.responsibility)?s.responsibility:[]);}
+function inDepartment(s){
+ const deps=getDepartments(s);
+ return !dept.value||(dept.value==='__unknown__'?!deps.length:deps.includes(dept.value));
+}
+function refreshOffices(){
+ const previous=office.value;
+ const names=[...new Set(services.filter(inDepartment).flatMap(getOffices))].sort((a,b)=>a.localeCompare(b,'de-CH'));
+ office.replaceChildren(new Option('Alle Ämter',''));
+ for(const name of names)office.add(new Option(name,name));
+ if(services.filter(inDepartment).some(s=>!getOffices(s).length))office.add(new Option('Nicht zugeordnet','__unknown__'));
+ office.value=[...office.options].some(o=>o.value===previous)?previous:'';
+}
+function draw(){
+ const words=norm(input.value.trim()).split(/\s+/).filter(Boolean);
+ const found=services.filter(s=>{
+  const offices=getOffices(s),deps=getDepartments(s);
+  const selectedOffice=!office.value||(office.value==='__unknown__'?!offices.length:offices.includes(office.value));
+  const haystack=norm([s.title,...offices,...deps].join(' '));
+  return inDepartment(s)&&selectedOffice&&words.every(w=>haystack.includes(w));
+ });
+ status.textContent=`${found.length} von ${services.length} Services`+(words.length||dept.value||office.value?' gefunden':' verfügbar');
+ results.replaceChildren();const fragment=document.createDocumentFragment();
+ for(const s of found.slice(0,150)){
+  const article=document.createElement('article');article.className='result';
+  const link=document.createElement('a');link.href=s.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=s.title;article.append(link);
+  const tags=document.createElement('div');tags.className='tags';
+  for(const d of getDepartments(s).length?getDepartments(s):['Nicht zugeordnet']){
+   const span=document.createElement('span');span.className='tag'+(d==='Nicht zugeordnet'?' unknown':'');span.textContent=d;tags.append(span);
+  }
+  for(const unit of getOffices(s)){const span=document.createElement('span');span.className='tag';span.textContent=unit;tags.append(span);}
+  article.append(tags);fragment.append(article);
+ }
+ results.append(fragment);if(found.length>150)status.textContent+=' · erste 150 angezeigt';
+}
+input.addEventListener('input',draw);dept.addEventListener('change',()=>{refreshOffices();draw()});office.addEventListener('change',draw);
+(async()=>{try{
+ const r=await fetch('./services.json',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);
+ const data=await r.json();if(!Array.isArray(data.items)||data.items.length<300)throw Error('unvollständiges Verzeichnis');
+ services=data.items;
+ const departments=[...new Set(services.flatMap(s=>s.departments||[]))].sort((a,b)=>a.localeCompare(b,'de-CH'));
+ for(const name of departments){const o=document.createElement('option');o.value=name;o.textContent=name;dept.append(o)}
+ const unknown=document.createElement('option');unknown.value='__unknown__';unknown.textContent='Nicht zugeordnet';dept.append(unknown);
+ refreshOffices();
+ updated.textContent='Zuletzt aktualisiert: '+new Date(data.updated).toLocaleString('de-CH',{timeZone:'Europe/Zurich'});
+ draw();
+}catch(e){status.textContent='Die Servicedaten konnten nicht geladen werden ('+e.message+'). Bitte später erneut versuchen.';}})();
 </script></body></html>
