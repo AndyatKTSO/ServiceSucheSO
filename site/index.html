@@ -1,1 +1,22 @@
+<!doctype html>
+<html lang="de-CH"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Service-Suche – Kanton Solothurn</title>
+<style>
+:root{color-scheme:light;font-family:system-ui,-apple-system,Segoe UI,Arial,sans-serif;color:#182b42;background:#f4f7fb}
+*{box-sizing:border-box}body{margin:0}header{background:#fff;border-bottom:1px solid #dce4ed;padding:26px 20px}main,header>div,footer{max-width:870px;margin:auto}h1{font-size:clamp(1.5rem,4vw,2rem);margin:0 0 8px}p{line-height:1.5}header p{margin:0;color:#57697b}main{padding:25px 20px}input{width:100%;border:2px solid #a4b4c6;border-radius:9px;padding:15px;font:inherit;font-size:1.1rem}input:focus{outline:2px solid #1869aa;outline-offset:2px}.meta{color:#56697d;margin:15px 0 18px}.result{background:white;border:1px solid #e1e8ef;border-radius:9px;margin:9px 0;padding:15px 18px}a{color:#075c9a;font-weight:600;text-decoration:none}a:hover{text-decoration:underline}footer{padding:5px 20px 28px;color:#607184;font-size:.88rem}
+</style></head>
+<body><header><div><h1>Services des Kantons Solothurn suchen</h1><p>Unabhängige Suchoberfläche mit Links zu den offiziellen Dienstleistungen.</p></div></header>
+<main><label for="search"><strong>Suchbegriff</strong></label><p><input id="search" type="search" placeholder="z. B. gefahr, MFK, Adoption" autocomplete="off" autofocus></p>
+<div id="status" class="meta" aria-live="polite">Lade Verzeichnis …</div><section id="results" aria-label="Suchresultate"></section></main>
+<footer><span id="updated"></span> · Quelle: <a href="https://so.ch/services/">so.ch/services</a>. Kein offizielles Angebot des Kantons.</footer>
+<script>
+const input=document.querySelector('#search'),status=document.querySelector('#status'),results=document.querySelector('#results'),updated=document.querySelector('#updated');
+let services=[];
+function norm(t){return String(t||'').toLocaleLowerCase('de-CH').replaceAll('ä','a').replaceAll('ö','o').replaceAll('ü','u').replaceAll('ß','ss').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
+function render(){const words=norm(input.value.trim()).split(/\s+/).filter(Boolean);const found=words.length?services.filter(s=>words.every(w=>norm(s.title).includes(w))):services;
+status.textContent=`${found.length} von ${services.length} Services`+(words.length?' gefunden':' verfügbar');results.replaceChildren();
+const frag=document.createDocumentFragment();for(const s of found.slice(0,150)){const article=document.createElement('article');article.className='result';const a=document.createElement('a');a.href=s.url;a.target='_blank';a.rel='noopener noreferrer';a.textContent=s.title;article.append(a);frag.append(article);}results.append(frag);if(found.length>150)status.textContent+=' · erste 150 angezeigt';}
+input.addEventListener('input',render);
+(async()=>{try{const r=await fetch('./services.json',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();if(!Array.isArray(data.items)||data.items.length<300)throw Error('unvollständiges Verzeichnis');services=data.items;updated.textContent='Zuletzt aktualisiert: '+new Date(data.updated).toLocaleString('de-CH',{timeZone:'Europe/Zurich'});render();}catch(e){status.textContent='Die Servicedaten konnten nicht geladen werden ('+e.message+'). Bitte später erneut versuchen.';}})();
+</script></body></html>
 
