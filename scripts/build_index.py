@@ -64,10 +64,15 @@ def parse_listing(html):
 
 
 def department_from_url(url):
+    """Ermittelt Departement oder eigenständigen Organisationsbereich."""
     parsed = urlsplit(url)
     if parsed.hostname not in ('so.ch', 'www.so.ch'):
         return None
     parts = [part.lower() for part in parsed.path.split('/') if part]
+    # Die Gerichte sind eine eigenständige Organisation und nicht
+    # einem Departement der kantonalen Verwaltung unterstellt.
+    if parts and parts[0] == 'gerichte':
+        return 'Gerichte'
     if 'verwaltung' not in parts:
         return None
     idx = parts.index('verwaltung')
